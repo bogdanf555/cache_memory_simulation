@@ -41,7 +41,7 @@ def generate_random_tag(list_of_used_tags, tag_size):
 # verifies if a strings is of form "K-WAY" where K is a number > 2
 def is_k_way(associativity):
     match_object = re.search("^([2-9][0-9]*)-WAY$", associativity)
-    return match_object != None and match_object.group(1) > 1
+    return match_object != None and int(match_object.group(1)) > 1
 
 
 def extrack_k_from_k_way(associativity):

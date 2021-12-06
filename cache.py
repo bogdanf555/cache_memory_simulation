@@ -1,5 +1,4 @@
 import random
-import math
 
 import util
 from util import CacheError, ReplacementStrategy, WritePolicy
@@ -19,19 +18,12 @@ class Cache:
         if not util.is_power_of_two(capacity):
             raise util.CacheError("Capacity not a power of two")
 
+        self.no_of_blocks = int(capacity / block_size)
         self.strategy = ReplacementStrategy.RANDOM
         self.write_policy = WritePolicy.WRITE_THROUGH
         self.block_size = block_size
         self.associativity = associativity
-        self.tag_size = (
-            util.CACHE_ADDRESS_SIZE
-            - math.log2(self.block_size)
-            - math.log2(self.no_of_cache_lines)
-        )  # in bytes
 
-        self.used_tags = []
-        self.fifo_tags = []  # For fifo replacement strategy
-        self.usage_fifo = []  # For least recently used
         self.global_access_time = 0
 
         if self.associativity == util.DIRECTLY_MAPPED:
@@ -50,13 +42,14 @@ class Cache:
         else:
             raise util.CacheError("Invalid associativity: " + self.associativity)
 
+        self.no_of_cache_lines = int(self.no_of_cache_lines)
+
         self.cache_lines = [
             [None for x in range(self.associated)]
             for y in range(self.no_of_cache_lines)
         ]
 
     def block_replacement(self, line, block):
-        # TODO : implement the actual logic of cache block replacement by strategy
 
         # NOTE : you also have to simulate the saving of block if dirty bit is set
         replaced_block = None
@@ -85,8 +78,21 @@ class Cache:
     def write_from_ram(self, block_index, data_block):
 
         if self.associativity == util.DIRECTLY_MAPPED:
-            block = self.cache_lines[block_index % self.no_of_cache_lines][0]
-            block.setData(data_block)
+            line_index = block_index % self.no_of_cache_lines
+            replaced_block = self.cache_lines[line_index][0]
+            self.cache_lines[line_index][0] = CacheBlock(
+                self.block_size, block_index, -1, data_block
+            )
+
+            if replaced_block:
+                if self.write_policy in [
+                    WritePolicy.WRITE_BACK,
+                    WritePolicy.WRITE_ONCE,
+                ]:
+                    self.write_back_to_ram(
+                        replaced_block.get_tag(), replaced_block.get_data()
+                    )
+
         else:
             line = None
             if self.associativity == util.FULLY_ASSOCIATIVE:
@@ -94,21 +100,28 @@ class Cache:
             else:
                 line = self.cache_lines[block_index % self.no_of_cache_lines]
 
+            fifo_place = sum(x is not None for x in line)
+            new_block = CacheBlock(self.block_size, block_index, fifo_place, data_block)
+
             placed = False
-            for block in line:
-                if block.isDataEmpty():
-                    block.setData(data_block)
+            for index, block in enumerate(line):
+                if block is None:
+                    line[index] = new_block
                     placed = True
                     break
 
             if not placed:
-                fifo_place = sum(x is not None for x in line)
-                block = CacheBlock(self.block_size, block_index, fifo_place, data_block)
-                self.block_replacement(line, block)
+                self.block_replacement(line, new_block)
 
     # NOTE : shall return block if found, None otherwise
-    def search(self, tag, index=None):
-        pass
+    def search(self, tag, index=0):
+
+        line = self.cache_lines[index]
+        for x in line:
+            if x is not None and x.get_tag() == tag:
+                return x
+
+        return None
 
     # NOTE : you also have to simulate the saving of block if dirty bit is set
     def write(self, block, data):
@@ -146,6 +159,18 @@ class Cache:
 
     def write_back_to_ram(self, block_index, data):
         pass  # Should not do anything actually :))
+
+    def get_write_policy(self):
+        return self.write_policy
+
+    def set_write_policy(self, policy: WritePolicy):
+        self.write_policy = policy
+
+    def get_strategy(self):
+        return self.strategy
+
+    def set_strategy(self, strategy: ReplacementStrategy):
+        self.strategy = strategy
 
 
 class CacheBlock:
@@ -186,7 +211,7 @@ class CacheBlock:
     def is_data_empty(self):
         return not any(self.data)
 
-    def increment_accessed_count(self):
+    def increment_access_count(self):
         self.accessed_count += 1
 
     def get_accessed_count(self):
@@ -205,7 +230,7 @@ class CacheBlock:
         return self.dirty_bit
 
 
-class RAM:
+class Ram:
     def __init__(self, size_in_megabytes, block_size_in_bytes):
         self.size_in_megabytes = size_in_megabytes
         self.block_size_in_bytes = block_size_in_bytes
@@ -213,6 +238,6 @@ class RAM:
 
     def fetch_data(self, block_index):
         return [
-            (util.RRIME_ONE * block_index + util.PRIME_TWO * index) % util.BYTE_MAX
+            hex((util.PRIME_ONE * block_index + util.PRIME_TWO * index) % util.BYTE_MAX)
             for index in range(self.block_size_in_bytes)
         ]
