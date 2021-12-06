@@ -3,6 +3,7 @@ import math
 
 import util
 from util import CacheError, ReplacementStrategy, WritePolicy
+from queue import Queue
 
 
 class Cache:
@@ -27,7 +28,11 @@ class Cache:
             - math.log2(self.block_size)
             - math.log2(self.no_of_cache_lines)
         )  # in bytes
+
         self.used_tags = []
+        self.fifo_tags = []  # For fifo replacement strategy
+        self.usage_fifo = []  # For least recently used
+        self.global_access_time = 0
 
         if self.associativity == util.DIRECTLY_MAPPED:
             self.no_of_cache_lines = capacity / self.block_size
@@ -46,44 +51,44 @@ class Cache:
             raise util.CacheError("Invalid associativity: " + self.associativity)
 
         self.cache_lines = [
-            [
-                CacheBlock(
-                    self.block_size,
-                    util.generate_random_tag(self.used_tags, self.tag_size),
-                    -1,
-                )
-                for x in range(self.associated)
-            ]
+            [None for x in range(self.associated)]
             for y in range(self.no_of_cache_lines)
         ]
 
-    def block_replacement(self, line, data_block):
+    def block_replacement(self, line, block):
         # TODO : implement the actual logic of cache block replacement by strategy
 
         # NOTE : you also have to simulate the saving of block if dirty bit is set
+        replaced_block = None
 
         if self.strategy == ReplacementStrategy.RANDOM:
-            block = random.choice(line)
-            block.setData(data_block)
+            index = random.randint(len(line))
         elif self.strategy == ReplacementStrategy.LEAST_FREQUENTLY_USED:
-            pass
+            index = line.index(min(line, key=lambda x: x.get_accessed_count()))
         elif self.strategy == ReplacementStrategy.LEAST_RECENTLY_USED:
-            pass
+            index = line.index(min(line, key=lambda x: x.get_access_time()))
         elif self.strategy == ReplacementStrategy.MOST_RECENTLY_USED:
-            pass
+            index = line.index(max(line, key=lambda x: x.get_access_time()))
         elif self.strategy == ReplacementStrategy.FIRST_IN_FIRST_OUT:
-            pass
+            index = line.index(min(line, key=lambda x: x.get_fifo_place()))
+            [block.decrement_fifo_place() for block in line]
         else:
             raise CacheError("invalid replacement strategy")
 
+        replaced_block = line[index]
+        line[index] = block
+        # save the replaced block
+        if self.write_policy in [WritePolicy.WRITE_BACK, WritePolicy.WRITE_ONCE]:
+            self.write_back_to_ram(replaced_block.get_tag(), replaced_block.get_data())
+
     # block index in the RAM memory, data to be loaded in the cache block
-    def loadBlockFromRAM(self, block_index, data_block):
+    def write_from_ram(self, block_index, data_block):
 
         if self.associativity == util.DIRECTLY_MAPPED:
             block = self.cache_lines[block_index % self.no_of_cache_lines][0]
             block.setData(data_block)
-            block.set_ram_index(block_index)
         else:
+            line = None
             if self.associativity == util.FULLY_ASSOCIATIVE:
                 line = self.cache_lines[0]
             else:
@@ -97,48 +102,65 @@ class Cache:
                     break
 
             if not placed:
-                self.block_replacement()
+                fifo_place = sum(x is not None for x in line)
+                block = CacheBlock(self.block_size, block_index, fifo_place, data_block)
+                self.block_replacement(line, block)
 
     # NOTE : shall return block if found, None otherwise
-    def search(self):
+    def search(self, tag, index=None):
         pass
 
     # NOTE : you also have to simulate the saving of block if dirty bit is set
     def write(self, block, data):
 
+        self.global_access_time += 1
+        block.set_access_time(self.global_access_time)
+
         if self.write_policy == WritePolicy.WRITE_THROUGH:
-            pass
+            block.set_data(data)
+            self.write_back_to_ram(block.get_tag(), data)
         elif self.write_policy == WritePolicy.WRITE_BACK:
-            pass
+            block.set_data(data)
+            block.set_dirty_bit(True)
         elif self.write_policy == WritePolicy.WRITE_ONCE:
-            pass
+            block.set_data(data)
+            if not block.get_written:
+                self.write_back_to_ram(block.get_tag(), data)
+            else:
+                block.set_dirty_bit(True)
         else:
             raise CacheError("invalid write policy")
 
-        block.set_accessed_count(block.get_accessed_count + 1)
+        block.increment_access_count()
         block.set_written(True)
-        block.set_dirty_bit(
-            True
-        )  # TODO : see when actually you have to set the dirty bit cause it seems wrong here (consider the writting policy)
 
     def read(self, block, block_offset=None):  # access byte in block or entire block
+
+        self.global_access_time += 1
+        block.set_access_time(self.global_access_time)
+
+        block.increment_access_count()
         if block_offset:
             return block.get_data_byte(block_offset)
         return block.get_data()
 
-    def write_back_to_ram(self):
-        pass
+    def write_back_to_ram(self, block_index, data):
+        pass  # Should not do anything actually :))
 
 
 class CacheBlock:
-    def __init__(self, block_size, tag, ram_index):
+    def __init__(self, block_size, tag, fifo_place, data=None):
         self.no_of_cells = block_size
         self.tag = tag
-        self.data = [None for i in range(self.no_of_cells)]
-        self.ram_index = ram_index
+        if data:
+            self.data = data
+        else:
+            self.data = [None for i in range(self.no_of_cells)]
         self.dirty_bit = False  # NOTE : for write back policy
-        self.accessed_count = 0
+        self.accessed_count = 0  # MOST/LAST frequently used replacement policy
         self.written = False  # NOTE : for write once policy
+        self.fifo_place = fifo_place
+        self.access_time = -1
 
     def get_data_byte(self, block_offset):
         return self.data[block_offset]
@@ -149,17 +171,23 @@ class CacheBlock:
     def set_data(self, data):
         self.data = data
 
-    def set_ram_index(self, index):
-        self.ram_index = index
+    def get_access_time(self):
+        return self.access_time
+
+    def set_access_time(self, time):
+        self.access_time = time
 
     def get_tag(self):
         return self.tag
 
+    def get_fifo_place(self):
+        return self.fifo_place
+
     def is_data_empty(self):
         return not any(self.data)
 
-    def set_accessed_count(self, count):
-        self.accessed_count = count
+    def increment_accessed_count(self):
+        self.accessed_count += 1
 
     def get_accessed_count(self):
         return self.accessed_count
