@@ -9,7 +9,14 @@ class Cache:
     # capacity - size of the cache in bytes
     # block_size - number of bytes in a block (mandatory a power of 2)
     # associativity - directly mapped, fully associative or "K-WAY" (this format, where K is a number > 1)
-    def __init__(self, capacity, associativity, block_size):
+    def __init__(
+        self,
+        capacity,
+        associativity,
+        block_size,
+        replacement_strategy=ReplacementStrategy.RANDOM,
+        write_policy=WritePolicy.WRITE_THROUGH,
+    ):
 
         if not util.is_power_of_two(block_size):
             raise util.CacheError("Block size not a power of two")
@@ -19,8 +26,8 @@ class Cache:
 
         self.capacity = capacity
         self.no_of_blocks = int(capacity / block_size)
-        self.strategy = ReplacementStrategy.RANDOM
-        self.write_policy = WritePolicy.WRITE_THROUGH
+        self.strategy = replacement_strategy
+        self.write_policy = write_policy
         self.block_size = block_size
         self.associativity = associativity
 
@@ -31,7 +38,7 @@ class Cache:
             self.associated = 1
         elif self.associativity == util.FULLY_ASSOCIATIVE:
             self.no_of_cache_lines = 1
-            self.associated = capacity / self.block_size
+            self.associated = int(capacity / self.block_size)
         elif util.is_k_way(self.associativity):
             self.associated = util.extrack_k_from_k_way(associativity)
             self.no_of_cache_lines = capacity / (self.associated * self.block_size)
