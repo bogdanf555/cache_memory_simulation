@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '.\cache_simulation.ui'
+# Form implementation generated from reading ui file '..\cache_simulation.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.4
 #
@@ -14,7 +14,7 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 class Ui_window(object):
     def setupUi(self, window):
         window.setObjectName("window")
-        window.resize(1362, 795)
+        window.resize(1435, 795)
         self.centralwidget = QtWidgets.QWidget(window)
         self.centralwidget.setObjectName("centralwidget")
         self.cache_config_label = QtWidgets.QLabel(self.centralwidget)
@@ -113,17 +113,20 @@ class Ui_window(object):
         self.cache_contents_table.setObjectName("cache_contents_table")
         self.cache_contents_table.setColumnCount(0)
         self.cache_contents_table.setRowCount(0)
-        self.textEdit = QtWidgets.QTextEdit(self.centralwidget)
-        self.textEdit.setGeometry(QtCore.QRect(1030, 10, 311, 741))
-        self.textEdit.setObjectName("textEdit")
         self.line_2 = QtWidgets.QFrame(self.centralwidget)
         self.line_2.setGeometry(QtCore.QRect(1000, 0, 20, 771))
         self.line_2.setFrameShape(QtWidgets.QFrame.VLine)
         self.line_2.setFrameShadow(QtWidgets.QFrame.Sunken)
         self.line_2.setObjectName("line_2")
+        self.operations_table = QtWidgets.QTableWidget(self.centralwidget)
+        self.operations_table.setEnabled(True)
+        self.operations_table.setGeometry(QtCore.QRect(1030, 10, 381, 741))
+        self.operations_table.setObjectName("operations_table")
+        self.operations_table.setColumnCount(0)
+        self.operations_table.setRowCount(0)
         window.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(window)
-        self.menubar.setGeometry(QtCore.QRect(0, 0, 1362, 26))
+        self.menubar.setGeometry(QtCore.QRect(0, 0, 1435, 26))
         self.menubar.setObjectName("menubar")
         window.setMenuBar(self.menubar)
 

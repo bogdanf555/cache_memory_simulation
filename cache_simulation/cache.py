@@ -61,7 +61,7 @@ class Cache:
         replaced_block = None
 
         if self.strategy == ReplacementStrategy.RANDOM:
-            index = random.randint(len(line))
+            index = random.randint(0, len(line) - 1)
         elif self.strategy == ReplacementStrategy.LEAST_FREQUENTLY_USED:
             index = line.index(min(line, key=lambda x: x.get_accessed_count()))
         elif self.strategy == ReplacementStrategy.LEAST_RECENTLY_USED:
@@ -212,6 +212,9 @@ class CacheBlock:
     def get_data_byte(self, block_offset):
         return self.data[block_offset]
 
+    def decrement_fifo_place(self):
+        self.fifo_place -= 1
+
     def get_data(self):
         return self.data
 
@@ -256,7 +259,9 @@ class Ram:
     def __init__(self, size_in_megabytes, block_size_in_bytes):
         self.size_in_megabytes = size_in_megabytes
         self.block_size_in_bytes = block_size_in_bytes
-        self.index_count = size_in_megabytes * 1024 * 1024 / self.block_size_in_bytes
+        self.index_count = int(
+            size_in_megabytes * 1024 * 1024 / self.block_size_in_bytes
+        )
 
     def fetch_data(self, block_index):
         return [

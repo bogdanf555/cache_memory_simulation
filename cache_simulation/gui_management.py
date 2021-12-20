@@ -1,3 +1,4 @@
+from PyQt5 import QtWidgets
 from PyQt5.QtWidgets import QMainWindow, QTableWidgetItem
 from user_interface import Ui_window
 
@@ -14,11 +15,13 @@ class GuiManager(QMainWindow):
         self.ui_window = Ui_window()
         self.ui_window.setupUi(self)
 
-        # set table settings
+        # set tables settings
         self.ui_window.cache_contents_table.setVisible(False)
+        self.ui_window.operations_table.setVisible(False)
 
         # set button actions
         self.ui_window.create_button.clicked.connect(self.create_button_press)
+        self.ui_window.start_button.clicked.connect(self.start_button_press)
 
         self.setWindowTitle("Cache Simulation")
 
@@ -74,6 +77,44 @@ class GuiManager(QMainWindow):
 
         self.populate_table()
 
+    def start_button_press(self):
+
+        headers = ["Operation", "Tag", "Index", "Result"]
+
+        operations = self.controller.read_and_write_all_blocks_once()
+
+        operations = operations + self.controller.read_and_write_blocks_randomly()
+
+        operations = operations + self.controller.replace_blocks()
+
+        table = self.ui_window.operations_table
+
+        table.setRowCount(0)
+        table.setColumnCount(0)
+
+        table.setRowCount(len(operations))
+        table.setColumnCount(4)
+
+        # insert headers
+        for index, heading in enumerate(headers):
+            table.setItem(0, index, QTableWidgetItem(heading))
+
+        # insert values
+        for operation_index, operation in enumerate(operations):
+            for index, operation_attribute in enumerate(operation):
+                table.setItem(
+                    operation_index, index, QTableWidgetItem(str(operation_attribute))
+                )
+
+        table.setHorizontalHeaderLabels(headers)
+        header = table.horizontalHeader()
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
+        table.verticalHeader().setVisible(False)
+        table.setVisible(True)
+
     def populate_table(self):
 
         headings, values = self.controller.fetch_cache_data()
@@ -96,4 +137,10 @@ class GuiManager(QMainWindow):
                 table.setItem(line_index, index, QTableWidgetItem(str(value)))
 
         table.setHorizontalHeaderLabels(headings)
+        table.verticalHeader().setVisible(False)
+
+        header = table.horizontalHeader()
+        for i, _ in enumerate(headings):
+            header.setSectionResizeMode(i, QtWidgets.QHeaderView.ResizeToContents)
+
         table.setVisible(True)
