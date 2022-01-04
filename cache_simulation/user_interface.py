@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file '..\cache_simulation.ui'
+# Form implementation generated from reading ui file '.\cache_simulation.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.4
 #
@@ -109,7 +109,7 @@ class Ui_window(object):
         self.block_size_input.setObjectName("block_size_input")
         self.cache_contents_table = QtWidgets.QTableWidget(self.centralwidget)
         self.cache_contents_table.setEnabled(True)
-        self.cache_contents_table.setGeometry(QtCore.QRect(360, 10, 631, 741))
+        self.cache_contents_table.setGeometry(QtCore.QRect(360, 50, 631, 701))
         self.cache_contents_table.setObjectName("cache_contents_table")
         self.cache_contents_table.setColumnCount(0)
         self.cache_contents_table.setRowCount(0)
@@ -120,10 +120,28 @@ class Ui_window(object):
         self.line_2.setObjectName("line_2")
         self.operations_table = QtWidgets.QTableWidget(self.centralwidget)
         self.operations_table.setEnabled(True)
-        self.operations_table.setGeometry(QtCore.QRect(1030, 10, 381, 741))
+        self.operations_table.setGeometry(QtCore.QRect(1030, 50, 381, 701))
         self.operations_table.setObjectName("operations_table")
         self.operations_table.setColumnCount(0)
         self.operations_table.setRowCount(0)
+        self.cache_config_label_2 = QtWidgets.QLabel(self.centralwidget)
+        self.cache_config_label_2.setGeometry(QtCore.QRect(360, 10, 231, 31))
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        font.setBold(True)
+        font.setUnderline(False)
+        font.setWeight(75)
+        self.cache_config_label_2.setFont(font)
+        self.cache_config_label_2.setObjectName("cache_config_label_2")
+        self.cache_config_label_3 = QtWidgets.QLabel(self.centralwidget)
+        self.cache_config_label_3.setGeometry(QtCore.QRect(1040, 10, 151, 31))
+        font = QtGui.QFont()
+        font.setPointSize(16)
+        font.setBold(True)
+        font.setUnderline(False)
+        font.setWeight(75)
+        self.cache_config_label_3.setFont(font)
+        self.cache_config_label_3.setObjectName("cache_config_label_3")
         window.setCentralWidget(self.centralwidget)
         self.menubar = QtWidgets.QMenuBar(window)
         self.menubar.setGeometry(QtCore.QRect(0, 0, 1435, 26))
@@ -158,3 +176,5 @@ class Ui_window(object):
         self.associativity_combo_box.setItemText(0, _translate("window", "Directly Mapped"))
         self.associativity_combo_box.setItemText(1, _translate("window", "Fully Associative"))
         self.associativity_combo_box.setItemText(2, _translate("window", "N-way"))
+        self.cache_config_label_2.setText(_translate("window", "Cache Contents"))
+        self.cache_config_label_3.setText(_translate("window", "Operations"))

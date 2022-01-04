@@ -1,6 +1,10 @@
+from cache import Cache
+from cache import Ram
+
+
 def test_cache():
-    cache = ch.Cache(128, "4-WAY", 4)
-    ram = ch.Ram(1, 4)
+    cache = Cache(128, "4-WAY", 4)
+    ram = Ram(1, 4)
 
     # full the cache
     for i in range(cache.no_of_blocks):

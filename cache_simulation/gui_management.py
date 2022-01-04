@@ -18,6 +18,7 @@ class GuiManager(QMainWindow):
         # set tables settings
         self.ui_window.cache_contents_table.setVisible(False)
         self.ui_window.operations_table.setVisible(False)
+        self.ui_window.operations_table.itemClicked.connect(self.change_cache_contents)
 
         # set button actions
         self.ui_window.create_button.clicked.connect(self.create_button_press)
@@ -81,7 +82,9 @@ class GuiManager(QMainWindow):
 
         headers = ["Operation", "Tag", "Index", "Result"]
 
-        operations = self.controller.read_and_write_all_blocks_once()
+        operations = [("cache creation", "", "", "")]
+
+        operations = operations + self.controller.read_and_write_all_blocks_once()
 
         operations = operations + self.controller.read_and_write_blocks_randomly()
 
@@ -115,9 +118,15 @@ class GuiManager(QMainWindow):
         table.verticalHeader().setVisible(False)
         table.setVisible(True)
 
-    def populate_table(self):
+    def change_cache_contents(self, item):
+        headings, values = self.controller.cache_records[item.row()]
+        self.populate_table(headings, values)
 
-        headings, values = self.controller.fetch_cache_data()
+    def populate_table(self, headings=None, values=None):
+
+        if not headings or not values:
+            headings, values = self.controller.fetch_cache_data()
+
         table = self.ui_window.cache_contents_table
 
         table.setRowCount(0)

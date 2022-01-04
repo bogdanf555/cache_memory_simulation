@@ -77,7 +77,10 @@ class Cache:
         replaced_block = line[index]
         line[index] = block
         # save the replaced block
-        if self.write_policy in [WritePolicy.WRITE_BACK, WritePolicy.WRITE_ONCE]:
+        if (
+            self.write_policy != WritePolicy.WRITE_THROUGH
+            and replaced_block.get_dirty_bit()
+        ):
             self.write_back_to_ram(replaced_block.get_tag(), replaced_block.get_data())
 
     # block index in the RAM memory, data to be loaded in the cache block
@@ -91,10 +94,10 @@ class Cache:
             )
 
             if replaced_block:
-                if self.write_policy in [
-                    WritePolicy.WRITE_BACK,
-                    WritePolicy.WRITE_ONCE,
-                ]:
+                if (
+                    self.write_policy != WritePolicy.WRITE_THROUGH
+                    and replaced_block.get_dirty_bit()
+                ):
                     self.write_back_to_ram(
                         replaced_block.get_tag(), replaced_block.get_data()
                     )
@@ -143,7 +146,7 @@ class Cache:
             block.set_dirty_bit(True)
         elif self.write_policy == WritePolicy.WRITE_ONCE:
             block.set_data(data)
-            if not block.get_written:
+            if not block.get_written():
                 self.write_back_to_ram(block.get_tag(), data)
             else:
                 block.set_dirty_bit(True)

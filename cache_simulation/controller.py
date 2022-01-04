@@ -14,6 +14,7 @@ class Controller:
     def __init__(self) -> None:
         self.cache = None
         self.ram = None
+        self.cache_records = []
 
     def create_cache(
         self, capacity, associativity, block_size, replacement_strategy, write_policy
@@ -36,16 +37,53 @@ class Controller:
 
         for x in range(self.cache.associated):
             headings.append(f"Tag {x}")
+
+            if self.cache.strategy == util.ReplacementStrategy.FIRST_IN_FIRST_OUT:
+                headings.append("FP")
+            elif self.cache.strategy == util.ReplacementStrategy.LEAST_FREQUENTLY_USED:
+                headings.append("AC")
+            elif self.cache.strategy in (
+                util.ReplacementStrategy.LEAST_RECENTLY_USED,
+                util.ReplacementStrategy.MOST_RECENTLY_USED,
+            ):
+                headings.append("AT")
+
+            if self.cache.write_policy == util.WritePolicy.WRITE_ONCE:
+                headings.append("WO")
+                headings.append("DB")
+            elif self.cache.write_policy == util.WritePolicy.WRITE_BACK:
+                headings.append("DB")
+
             headings.append(f"Data {x}")
 
         for line in self.cache.cache_lines:
             line_row = list()
             for block in line:
                 line_row.append(block.get_tag())
+
+                if self.cache.strategy == util.ReplacementStrategy.FIRST_IN_FIRST_OUT:
+                    line_row.append(block.get_fifo_place())
+                elif (
+                    self.cache.strategy
+                    == util.ReplacementStrategy.LEAST_FREQUENTLY_USED
+                ):
+                    line_row.append(block.get_accessed_count())
+                elif self.cache.strategy in (
+                    util.ReplacementStrategy.LEAST_RECENTLY_USED,
+                    util.ReplacementStrategy.MOST_RECENTLY_USED,
+                ):
+                    line_row.append(block.get_access_time())
+
+                if self.cache.write_policy == util.WritePolicy.WRITE_ONCE:
+                    line_row.append(block.get_written())
+                    line_row.append(block.get_dirty_bit())
+                elif self.cache.write_policy == util.WritePolicy.WRITE_BACK:
+                    line_row.append(block.get_dirty_bit())
+
                 line_row.append("".join(str(elem) + "  " for elem in block.get_data()))
             values.append(line_row)
 
-        return headings, values
+        return (headings, values)
 
     def fill_cache(self):
         if self.cache is None or self.ram is None:
@@ -56,11 +94,12 @@ class Controller:
             block_data = self.ram.fetch_data(i)
             self.cache.write_from_ram(i, block_data)
 
+        self.cache_records.append(self.fetch_cache_data())
+
     def random_read_or_write(self, index, tag, with_miss=False):
         operation = random.randint(0, 1)  # 0 means read, 1 means write
 
         block = self.cache.search(tag, index)
-        print(index, tag)
         operation_name = "_with_hit" if not with_miss else "_with_miss"
 
         if operation:
@@ -73,6 +112,8 @@ class Controller:
             data = self.cache.read(block)
 
         result = " ".join(elem for elem in data)
+
+        self.cache_records.append(self.fetch_cache_data())
 
         return (operation_name, tag, index, result)
 
@@ -90,11 +131,16 @@ class Controller:
                 data = self.cache.read(block_found)
                 result = " ".join(elem for elem in data)
                 operations.append(("read_with_hit", tag, index, result))
+
+                self.cache_records.append(self.fetch_cache_data())
+
                 # write
                 new_data = [hex(random.randint(0, 255)) for x in data]
                 self.cache.write(block_found, new_data)
                 result = " ".join(elem for elem in new_data)
                 operations.append(("write_with_hit", tag, index, result))
+
+                self.cache_records.append(self.fetch_cache_data())
 
         return operations
 
@@ -157,14 +203,6 @@ class Controller:
                         self.cache.no_of_cache_lines
                         - tag % self.cache.no_of_cache_lines
                         + index
-                    )
-
-                if tag % self.cache.no_of_cache_lines != index:
-                    print("pula domle")
-                    print(
-                        tag % self.cache.no_of_cache_lines,
-                        self.cache.no_of_cache_lines,
-                        index,
                     )
 
                 replacement_block = self.ram.fetch_data(tag)
